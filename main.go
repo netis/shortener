@@ -2,11 +2,12 @@ package main
 
 import (
 	"net/http"
-	"fmt"
 	"shortener/store"
+	"log"
+	"fmt"
 )
 
-var st = store.NewURLStore()
+var st = store.NewURLStore("shortener.gob")
 
 func main() {
 	http.HandleFunc("/", Redirect)
@@ -16,7 +17,7 @@ func main() {
 
 func Add(w http.ResponseWriter, r *http.Request) {
 	url := r.FormValue("url")
-	fmt.Printf("url = %s\n", url)
+	log.Printf("url = %s\n", url)
 	if url == "" {
 		fmt.Fprintf(w, AddForm)
 		return
@@ -35,9 +36,9 @@ const AddForm = `
 
 func Redirect(w http.ResponseWriter, r *http.Request) {
 	key := r.URL.Path[1:]
-	fmt.Printf("Path is %s\n", r.URL.Path)
+	log.Printf("Path is %s\n", r.URL.Path)
 	url := st.Get(key)
-	fmt.Printf("url is %s\n", url)
+	log.Printf("url is %s\n", url)
 	if url == "" {
 		http.NotFound(w, r)
 		return

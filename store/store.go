@@ -3,28 +3,39 @@ package store
 import (
 	"strconv"
 	"os"
-	"log"
 	"io"
 	"encoding/gob"
+	"sync"
+	"log"
 )
 
 type URLStore struct {
+	sync.Mutex
 	urls map[string]string
 	file *os.File
+	  
 }
 
 func (s *URLStore) Get(key string) string {
+	s.Lock()
+	defer s.Unlock()
 	url := s.urls[key]
 	return url
 }
-
 func (s *URLStore) Set(key string, url string) bool {
-	log.Printf("trying to Set %s in store, with key %s\n", url, key)
+	s.Lock()
+	defer s.Unlock()
+	return s.set(key, url)
+
+}
+func (s *URLStore) set(key string, url string) bool {
+	
+	//log.Printf("trying to Set %s in store, with key %s\n", url, key)
 	if _, present := s.urls[key]; present {
-		log.Print("%s present\n", key)
+		//log.Print("%s present\n", key)
 		return false
 	}
-	log.Printf("inserting %s in store with key %s\n", url, key)
+	//log.Printf("inserting %s in store with key %s\n", url, key)
 	s.urls[key] = url
 	return true
 }
@@ -33,11 +44,11 @@ func NewURLStore(filename string) *URLStore {
 	s := &URLStore{urls: make(map[string]string)}
 	f, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
 	if err != nil {
-		log.Fatal("URLStore:", err)
+		//log.Fatal("URLStore:", err)
 	}
 	s.file = f
 	if err := s.load(); err != nil {
-		log.Printf("Error loading data in URLStore:", err)
+		//log.Printf("Error loading data in URLStore:", err)
 	}
 	return s
 }
@@ -47,17 +58,19 @@ func (s *URLStore) Count() int {
 }
 
 func (s *URLStore) Put(url string) string {
+	s.Lock()
+	defer s.Unlock()
 	for {
 		key := genKey(s.Count())
-		log.Print("trying to Put %s in store, with key %s\n", url, key)
-		if s.Set(key, url) {
+		////log.Printf("trying to Put %s in store, with key %s\n", url, key)
+		if s.set(key, url) {
 			if err := s.save(key,url); err != nil {
 				log.Printf("Error saving data in URLStore:", err)
 			}
-			log.Printf("success\n")
+			//log.Printf("success\n")
 			return key
 		}
-		log.Printf("failed\n")
+		//log.Printf("failed\n")
 	}
 	return ""
 }
